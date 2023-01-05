@@ -1,6 +1,8 @@
 maincol = {0.5, 0, 0}
 backcol = {0.9, 0.4, 0.4}
 
+require("xml")
+
 print (love.filesystem.getSourceBaseDirectory())
 
 function readFile(file)
@@ -54,6 +56,51 @@ math.randomseed(love.timer.getTime( ))
 
 setCols(HSV(math.random(), 1, 1))
 
+elements = {}
+elements.window = {
+	draw = function(self)
+		love.graphics.push()
+		if self.xarg.padding then
+			love.graphics.translate(tonumber(self.xarg.padding), tonumber(self.xarg.padding))
+		end
+		for index, value in ipairs(self) do
+			elements[value.label].draw(value)
+			love.graphics.translate(0, elements[value.label]:getHeight())
+		end
+		love.graphics.pop()
+	end,
+	getHeight = function(self)
+		return love.graphics:getHeight()
+	end,
+	getWidth = function(self)
+		return love.graphics:getWidth()
+	end,
+}
+elements.title = {
+	draw = function(self)
+		love.graphics.setFont(font(48))
+		love.graphics.print(self[1], 0, 0)
+	end,
+	getHeight = function(self)
+		return font(48):getHeight()*select(2, string.gsub(self[1], "\n", "string"))
+	end,
+	getWidth = function(self)
+		return font(48):getWidth()
+	end,
+}
+elements.label = {
+	draw = function(self)
+		love.graphics.setFont(font(16))
+		love.graphics.print(self[1], 0, 0)
+	end,
+	getHeight = function(self)
+		return font(16):getHeight()
+	end,
+	getWidth = function(self)
+		return font(16):getWidth()
+	end,
+}
+
 menu = {}
 
 function forcepaint()
@@ -95,7 +142,7 @@ menu.main = {
 		text = "Settings",
 		disabled = true,
 		click = function (self)
-
+			buttons = menu.settings
 		end
 	},
 	{
@@ -196,6 +243,13 @@ menu.launched = {
 	},
 }
 
+menu.settings = xml [[
+	<window padding="10">
+		<title>Hello world!</title>
+		<label>This is a paragraph lmao</label>
+	</window>
+]]
+
 buttons = menu.main
 
 fonts = {}
@@ -210,40 +264,46 @@ end
 function love.draw()
 	love.graphics.setBackgroundColor(maincol)
 	love.graphics.setLineWidth(2)
-	for index, value in ipairs(buttons) do
-		local fo
-		if value.click then
-			fo = font(value.r/3)
-			
-			if distanceFrom(love.mouse.getX(), love.mouse.getY(), value.x, value.y) < value.r and not value.disabled then
-				love.graphics.setColor(1,1,1)
+	if buttons.xml_top then
+		for index, value in ipairs(buttons) do
+			elements[value.label].draw(value)
+		end
+	else
+		for index, value in ipairs(buttons) do
+			local fo
+			if value.click then
+				fo = font(value.r/3)
+				
+				if distanceFrom(love.mouse.getX(), love.mouse.getY(), value.x, value.y) < value.r and not value.disabled then
+					love.graphics.setColor(1,1,1)
+				else
+					love.graphics.setColor(backcol)
+				end
+				love.graphics.circle("line", value.x, value.y, value.r, 100)
+				if not value.disabled then 
+					love.graphics.circle("fill", value.x, value.y, value.r)
+					love.graphics.setColor(maincol)
+				end
 			else
+				fo = font(value.r)
 				love.graphics.setColor(backcol)
 			end
-			love.graphics.circle("line", value.x, value.y, value.r, 100)
-			if not value.disabled then 
-				love.graphics.circle("fill", value.x, value.y, value.r)
-				love.graphics.setColor(maincol)
+			love.graphics.setFont(fo)
+			if (value.text == "<") then
+				love.graphics.polygon("fill",
+					value.x-value.r*0.75, value.y,
+					value.x+value.r*0.5, value.y+value.r*0.65,
+					value.x+value.r*0.5, value.y-value.r*0.65
+				)
+				love.graphics.polygon("line",
+					value.x-value.r*0.75, value.y,
+					value.x+value.r*0.5, value.y+value.r*0.65,
+					value.x+value.r*0.5, value.y-value.r*0.65
+				)
 			end
-		else
-			fo = font(value.r)
-			love.graphics.setColor(backcol)
-		end
-		love.graphics.setFont(fo)
-		if (value.text == "<") then
-			love.graphics.polygon("fill",
-				value.x-value.r*0.75, value.y,
-				value.x+value.r*0.5, value.y+value.r*0.65,
-				value.x+value.r*0.5, value.y-value.r*0.65
-			)
-			love.graphics.polygon("line",
-				value.x-value.r*0.75, value.y,
-				value.x+value.r*0.5, value.y+value.r*0.65,
-				value.x+value.r*0.5, value.y-value.r*0.65
-			)
-		end
-		love.graphics.print(value.text, value.x-fo:getWidth(value.text)/2, value.y-fo:getHeight()/2)
-	end	
+			love.graphics.print(value.text, value.x-fo:getWidth(value.text)/2, value.y-fo:getHeight()/2)
+		end	
+	end
 end
 
 function love.update()

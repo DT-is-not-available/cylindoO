@@ -1,0 +1,4 @@
+<panel id="settings" padding=10>
+	<title>Hello world!</title>
+	<label>This is a paragraph lmao</label>
+</panel>
