@@ -172,7 +172,7 @@ menu.launched = {
 	{
 		x = 400, y = 200, r = 48,
 		text = "Game Launched",
-	},
+	}, 
 	{
 		x = 275, y = 350, r = 74,
 		text = "Back",
