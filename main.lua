@@ -65,7 +65,7 @@ elements.window = {
 		end
 		for index, value in ipairs(self) do
 			elements[value.label].draw(value)
-			love.graphics.translate(0, elements[value.label]:getHeight())
+			love.graphics.translate(0, elements[value.label].getHeight(value))
 		end
 		love.graphics.pop()
 	end,
@@ -82,7 +82,7 @@ elements.title = {
 		love.graphics.print(self[1], 0, 0)
 	end,
 	getHeight = function(self)
-		return font(48):getHeight()*select(2, string.gsub(self[1], "\n", "string"))
+		return font(48):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
 	end,
 	getWidth = function(self)
 		return font(48):getWidth()
@@ -94,7 +94,7 @@ elements.label = {
 		love.graphics.print(self[1], 0, 0)
 	end,
 	getHeight = function(self)
-		return font(16):getHeight()
+		return font(16):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
 	end,
 	getWidth = function(self)
 		return font(16):getWidth()
@@ -246,7 +246,11 @@ menu.launched = {
 menu.settings = xml [[
 	<window padding="10">
 		<title>Hello world!</title>
-		<label>This is a paragraph lmao</label>
+		<label>This is a paragraph lmao
+It has newlines
+	and indents
+so it has to be handled properly</label>
+		<title>Hello world!</title>
 	</window>
 ]]
 
