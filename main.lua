@@ -5,6 +5,9 @@ require("xml")
 
 print (love.filesystem.getSourceBaseDirectory())
 
+needsCompile = false
+ver = "beta-230108.0445"
+
 function readFile(file)
     local f = assert(io.open(file, "rb"))
     local content = f:read("*all")
@@ -57,17 +60,46 @@ math.randomseed(love.timer.getTime( ))
 setCols(HSV(math.random(), 1, 1))
 
 elements = {}
+elements.x = 0
+elements.y = 0
 elements.window = {
 	draw = function(self)
-		love.graphics.push()
+		if not self.xarg.spacing then
+			self.xarg.spacing = "0"
+		end
+		love.graphics.setColor(backcol)
+		love.graphics.origin()
+		elements.x = 0
+		elements.y = 0
 		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
 			love.graphics.translate(tonumber(self.xarg.padding), tonumber(self.xarg.padding))
 		end
 		for index, value in ipairs(self) do
-			elements[value.label].draw(value)
-			love.graphics.translate(0, elements[value.label].getHeight(value))
+			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
+			love.graphics.translate(0, elements[value.label].getHeight(value) + tonumber(self.xarg.spacing))
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
 		end
-		love.graphics.pop()
+		love.graphics.origin()
+	end,
+	click = function(self)
+		elements.x = 0
+		elements.y = 0
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].click and
+			love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)
+			then 
+				elements[value.label].click(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
 	end,
 	getHeight = function(self)
 		return love.graphics:getHeight()
@@ -76,8 +108,139 @@ elements.window = {
 		return love.graphics:getWidth()
 	end,
 }
+elements.panel = {
+	draw = function(self)
+		if not self.xarg.spacing then
+			self.xarg.spacing = "0"
+		end
+		love.graphics.setColor(backcol)
+		love.graphics.push()
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+			love.graphics.translate(tonumber(self.xarg.padding), tonumber(self.xarg.padding))
+		end
+		for index, value in ipairs(self) do
+			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
+			love.graphics.translate(0, elements[value.label].getHeight(value) + tonumber(self.xarg.spacing))
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		love.graphics.pop()
+		elements.x = x
+		elements.y = y
+	end,
+	click = function(self)
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].click and
+			love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)
+			then 
+				elements[value.label].click(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
+	getHeight = function(self)
+		if not self.height then
+			self.height = 0
+			for index, value in ipairs(self) do
+				self.height = self.height + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+			end
+		end
+		return self.height
+	end,
+	getWidth = function(self)
+		if not self.width then
+			self.width = 0
+			for index, value in ipairs(self) do
+				local newVal = elements[value.label].getWidth(value)
+				if newVal > self.width then
+					self.width = newVal
+				end
+			end
+		end
+		return self.width
+	end,
+}
+elements.row = {
+	draw = function(self)
+		if not self.xarg.spacing then
+			self.xarg.spacing = "0"
+		end
+		love.graphics.setColor(backcol)
+		love.graphics.push()
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+			love.graphics.translate(tonumber(self.xarg.padding), tonumber(self.xarg.padding))
+		end
+		for index, value in ipairs(self) do
+			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
+			love.graphics.translate(elements[value.label].getWidth(value) + tonumber(self.xarg.spacing), 0)
+			elements.x = elements.x + elements[value.label].getWidth(value) + tonumber(self.xarg.spacing)
+		end
+		love.graphics.pop()
+		elements.x = x
+		elements.y = y
+	end,
+	click = function(self)
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].click and
+			love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)
+			then 
+				elements[value.label].click(value)
+			end
+			elements.x = elements.x + elements[value.label].getWidth(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
+	getHeight = function(self)
+		if not self.height then
+			self.height = 0
+			for index, value in ipairs(self) do
+				local newVal = elements[value.label].getHeight(value)
+				if newVal > self.height then
+					self.height = newVal
+				end
+			end
+		end
+		return self.height
+	end,
+	getWidth = function(self)
+		if not self.width then
+			self.width = 0
+			for index, value in ipairs(self) do
+				self.width = self.width + elements[value.label].getWidth(value) + tonumber(self.xarg.spacing)
+			end
+		end
+		return self.width
+	end,
+}
 elements.title = {
 	draw = function(self)
+		love.graphics.setColor(backcol)
 		love.graphics.setFont(font(48))
 		love.graphics.print(self[1], 0, 0)
 	end,
@@ -85,20 +248,56 @@ elements.title = {
 		return font(48):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
 	end,
 	getWidth = function(self)
-		return font(48):getWidth()
+		return font(48):getWidth(self[1])
 	end,
 }
 elements.label = {
 	draw = function(self)
-		love.graphics.setFont(font(16))
+		love.graphics.setColor(backcol)
+		love.graphics.setFont(font(tonumber(self.xarg.size)))
 		love.graphics.print(self[1], 0, 0)
 	end,
 	getHeight = function(self)
-		return font(16):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
+		return font(tonumber(self.xarg.size)):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
 	end,
 	getWidth = function(self)
-		return font(16):getWidth()
+		if not self.xarg.size then
+			self.xarg.size = "16"
+		end
+		return font(tonumber(self.xarg.size)):getWidth(self[1])
 	end,
+}
+elements.button = {
+	draw = function(self, hover)
+		love.graphics.setColor(backcol)
+		if not self.xarg.padding then
+			self.xarg.padding = "0"
+		end
+		love.graphics.setFont(font(16))
+		if hover then
+			love.graphics.setColor(1,1,1)
+		end
+		love.graphics.rectangle("fill", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
+		love.graphics.rectangle("line", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
+		love.graphics.setColor(maincol)
+		love.graphics.print(self[1], tonumber(self.xarg.padding), tonumber(self.xarg.padding))
+	end,
+	getHeight = function(self)
+		return font(16):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1) + tonumber(self.xarg.padding)*2
+	end,
+	getWidth = function(self)
+		return font(16):getWidth(self[1]) + tonumber(self.xarg.padding)*2
+	end,
+	click = function(self)
+		local actions = {
+			menu_main = function ()
+				buttons = menu.main
+			end
+		}
+		if self.xarg.id then
+			actions[self.xarg.id]()
+		end
+	end
 }
 
 menu = {}
@@ -109,25 +308,36 @@ function forcepaint()
 	love.graphics.present()
 end
 
+function compile()
+	buttons = menu.compiling
+	forcepaint()
+	print("Compiling Mods...\nThe window may show that it is not responding during this process.")
+	os.remove("./data.win")
+	os.execute("compile.bat")
+	--[[]
+	print("Applying file size fix")
+	local data = readFile('./data.win')
+	data = string.sub(data, 1, 4)..love.data.pack("string", "<I4", fileSize("./data.win"))..string.sub(data, 9)
+	writeFile('./data.win', data)
+	--[[]]
+	print("Launching... "..love.filesystem.getSourceBaseDirectory()..'/data.win')
+	os.execute('start "" "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\circloo2.exe" -game "'..love.filesystem.getSourceBaseDirectory()..'\\data.win"')
+	buttons = menu.launched
+	needsCompile = false
+end
+
 menu.main = {
 	{
 		x = 125, y = 300, r = 74,
 		text = "Play!",
-		click = function (self)
-			buttons = menu.compiling
-			forcepaint()
-			print("Compiling Mods...\nThe window may show that it is not responding during this process.")
-			os.remove("./data.win")
-			os.execute("compile.bat")
-			--[[]
-			print("Applying file size fix")
-			local data = readFile('./data.win')
-			data = string.sub(data, 1, 4)..love.data.pack("string", "<I4", fileSize("./data.win"))..string.sub(data, 9)
-			writeFile('./data.win', data)
-			--[[]]
-			print("Launching... "..love.filesystem.getSourceBaseDirectory()..'/data.win')
-			os.execute('start "" "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\circloo2.exe" -game "'..love.filesystem.getSourceBaseDirectory()..'\\data.win"')
-			buttons = menu.launched
+		click = function (self) 
+			if needsCompile then
+				compile()
+			else
+				print("Launching... "..love.filesystem.getSourceBaseDirectory()..'/data.win')
+				os.execute('start "" "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\circloo2.exe" -game "'..love.filesystem.getSourceBaseDirectory()..'\\data.win"')
+				buttons = menu.launched
+			end
 		end
 	},
 	{
@@ -140,7 +350,6 @@ menu.main = {
 	{
 		x = 492, y = 300, r = 74,
 		text = "Settings",
-		disabled = true,
 		click = function (self)
 			buttons = menu.settings
 		end
@@ -159,6 +368,10 @@ menu.main = {
 	{
 		x = 400, y = 85.5, r = 20,
 		text = "A tool by DT.",
+	},
+	{
+		x = 400, y = 475, r = 10,
+		text = "build "..ver,
 	},
 }
 
@@ -222,10 +435,8 @@ menu.launched = {
 	}, 
 	{
 		x = 275, y = 350, r = 74,
-		text = "Back",
-		click = function (self)
-			buttons = menu.main
-		end
+		text = "Recompile",
+		click = compile
 	},
 	{
 		x = 525, y = 350, r = 74,
@@ -243,16 +454,21 @@ menu.launched = {
 	},
 }
 
-menu.settings = xml [[
-	<window padding="10">
-		<title>Hello world!</title>
-		<label>This is a paragraph lmao
-It has newlines
-	and indents
-so it has to be handled properly</label>
-		<title>Hello world!</title>
-	</window>
-]]
+menu.settings = xml([[
+
+<window padding="15" spacing=24>
+	<row spacing="10">
+		<button padding="10" id="menu_main">Back</button>
+		<label size=32>Settings</label>
+	</row>
+	<label>There are currently no settings available to change.
+This page serves more as an element testing page for the XML system.</label>
+	<label>Current build: ]]..ver..[[</label>
+</window>
+
+]])
+
+print(dump(menu.settings))
 
 buttons = menu.main
 
@@ -270,6 +486,7 @@ function love.draw()
 	love.graphics.setLineWidth(2)
 	if buttons.xml_top then
 		for index, value in ipairs(buttons) do
+			love.graphics.setColor(backcol)
 			elements[value.label].draw(value)
 		end
 	else
@@ -317,9 +534,15 @@ end
 function distanceFrom(x1,y1,x2,y2) return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2) end
 
 function love.mousepressed()
-	for index, value in ipairs(buttons) do
-		if distanceFrom(love.mouse.getX(), love.mouse.getY(), value.x, value.y) < value.r then
-			value:click()
+	if buttons.xml_top then
+		for index, value in ipairs(buttons) do
+			if elements[value.label].click then elements[value.label].click(value) end
+		end
+	else
+		for index, value in ipairs(buttons) do
+			if distanceFrom(love.mouse.getX(), love.mouse.getY(), value.x, value.y) < value.r then
+				value:click()
+			end
 		end
 	end
 end

@@ -1,4 +1,14 @@
-<panel id="settings" padding=10>
-	<title>Hello world!</title>
-	<label>This is a paragraph lmao</label>
-</panel>
+<window padding="10">
+	<row spacing="10">
+		<button padding="10" id="menu_main">Back</button>
+		<title>Settings</title>
+	</row>
+	<label>This is a paragraph lmao
+It has newlines
+	and indents
+so it has to be handled properly</label>
+	<panel padding="20">
+		<button padding="10" id="menu_main">Button Test</button>
+		<title>In Panel</title>
+	</panel>
+</window>

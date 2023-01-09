@@ -73,10 +73,3 @@ function dump(o, i)
 		end
 	end
 end
-
-print( dump ( xml [[
-	<window padding=10>
-		<title>Hello world!</title>
-		<label>This is a paragraph lmao</label>
-	</window>
-]] ) )

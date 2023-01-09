@@ -1,0 +1,7 @@
+{
+	"Name": "The best mod",
+	"Description": "yes",
+	"Events": {
+		"draw": ["filename.gml"]
+	}
+}
