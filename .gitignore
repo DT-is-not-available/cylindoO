@@ -1,5 +1,6 @@
 umtcli/*
 mods/*
 patches/*
+.vscode/*
 data.win
 cylindoO.lnk
