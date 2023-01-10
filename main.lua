@@ -4,11 +4,21 @@ backcol = {0.9, 0.4, 0.4}
 local http = require "socket.http"
 
 require("xml")
-require("unzip")
+
+function exists(file)
+	local ok, err, code = os.rename(file, file)
+	if not ok then
+	if code == 13 then
+		-- Permission denied, but it exists
+		return true
+	end
+	end
+	return ok, err
+end
 
 localPath = love.filesystem.getSourceBaseDirectory().."/"
 
-needsCompile = love.filesystem.getInfo(localPath.."data.win") == nil
+needsCompile = exists(".\\data.win") == nil
 ver = require("ver")
 
 function readFile(file)
@@ -69,12 +79,12 @@ os.execute("mkdir temp")
 love.filesystem.createDirectory("temp")
 
 function recursivelyDelete( item )
-	if love.filesystem.getInfo( item , "directory" ) then
+	if exists( item , "directory" ) then
 		for _, child in ipairs( love.filesystem.getDirectoryItems( item )) do
 			recursivelyDelete( item .. '/' .. child )
 			love.filesystem.remove( item .. '/' .. child )
 		end
-	elseif love.filesystem.getInfo( item ) then
+	elseif exists( item ) then
 		love.filesystem.remove( item )
 	end
 	love.filesystem.remove( item )
@@ -106,13 +116,25 @@ local actions = {
 	end,
 	update_ver_no = function ()
 		local d = os.date("*t", os.time())
-		local newver = 'beta-'..(
+		local newver = "1.0."..(
 			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
 		)
 		writeFile("ver.lua", 'return "'..newver..'"')
 		ver = newver.." (preview)"
 		buttons = menu.settings()
-	end
+	end,
+	update_beta_no = function ()
+		local d = os.date("*t", os.time())
+		local newver = 'unstable-'..(
+			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
+		)
+		writeFile("ver.lua", 'return "'..newver..'"')
+		ver = newver.." (preview)"
+		buttons = menu.settings()
+	end,
+	restart = function ()
+		love.event.quit( "restart" )
+	end,
 }
 
 elements = {}
@@ -364,7 +386,7 @@ end
 local path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
 
 function compile()
-	if (not love.filesystem.getInfo(path)) then
+	if (not exists(path)) then
 		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
 		love.window.showMessageBox("No installation", "It does not appear that you have circloO instaled. Please install it on Steam before attempting to use this tool.", "error")
@@ -377,14 +399,14 @@ function compile()
 		print("Compiling Mods...\nThe window may show that it is not responding during this process.")
 		os.remove("./data.win")
 		print("Verifying existance of compiler tools...")
-		if not love.filesystem.getInfo(localPath.."umtcli\\UndertaleModCLI.exe") then
+		if not exists(".\\umtcli\\UndertaleModCLI.exe") then
 			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("UndertaleModCLI missing", "Please install UndertaleModCLI from the settings to continue.", "error")
 			buttons = menu.settings()
 			return
 		end
-		if not love.filesystem.getInfo(localPath.."main.csx") then
+		if not exists(".\\main.csx") then
 			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("main.csx missing", "Please redownload cylindoO to continue.", "error")
@@ -401,7 +423,7 @@ function compile()
 	--[[]]
 	if ret == 0 then
 		print("Launching... "..localPath..'/data.win')
-		os.execute('start "" "'..path..'circloo2.exe" -game "'..localPath..'\\data.win"')
+		os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
 		buttons = menu.launched
 		needsCompile = false
 	else
@@ -450,7 +472,7 @@ menu.main = {
 	},
 	{
 		x = 400, y = 475, r = 10,
-		text = "build "..ver,
+		text = ver,
 	},
 }
 
@@ -596,7 +618,9 @@ If you get a missing file error please press one of the buttons below.</label>
 	<label>Current build: ]]..ver..'\n'..[[
 These options will only work for developers:</label>
 	<row spacing="10">
-		<button padding="10" id="update_ver_no">Update Build ID</button>
+		<button padding="10" id="update_ver_no">Build ID</button>
+		<button padding="10" id="update_beta_no">Unstable ID</button>
+		<button padding="10" id="restart">Restart</button>
 	</row>
 </window>
 
