@@ -1,12 +1,15 @@
 maincol = {0.5, 0, 0}
 backcol = {0.9, 0.4, 0.4}
 
+local http = require "socket.http"
+
 require("xml")
+require("unzip")
 
-print (love.filesystem.getSourceBaseDirectory())
+localPath = love.filesystem.getSourceBaseDirectory().."/"
 
-needsCompile = false
-ver = "beta-230108.0445"
+needsCompile = love.filesystem.getInfo(localPath.."data.win") == nil
+ver = require("ver")
 
 function readFile(file)
     local f = assert(io.open(file, "rb"))
@@ -58,6 +61,56 @@ end
 math.randomseed(love.timer.getTime( ))
 
 setCols(HSV(math.random(), 1, 1))
+
+os.execute("mkdir umtcli")
+os.execute("mkdir mods")
+os.execute("mkdir patches")
+os.execute("mkdir temp")
+love.filesystem.createDirectory("temp")
+
+function recursivelyDelete( item )
+	if love.filesystem.getInfo( item , "directory" ) then
+		for _, child in ipairs( love.filesystem.getDirectoryItems( item )) do
+			recursivelyDelete( item .. '/' .. child )
+			love.filesystem.remove( item .. '/' .. child )
+		end
+	elseif love.filesystem.getInfo( item ) then
+		love.filesystem.remove( item )
+	end
+	love.filesystem.remove( item )
+end
+
+local actions = {
+	menu_main = function ()
+		buttons = menu.main
+	end,
+	install_umtcli = function ()
+		recursivelyDelete(localPath.."umtcli")
+		buttons = menu.message("Downloading...", "This may take a while.")
+		forcepaint()
+		os.execute('C:\\Windows\\System32\\curl "https://dt-is-not-available.github.io/cylindoO-files/umtcli.zip" --output temp\\umtcli.zip')
+		buttons = menu.message("Extracting...", "This may take a while. Please wait, even if the window shows \"Not Responding.\"")
+		forcepaint()
+		os.execute('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell -command "Expand-Archive -Force \'.\\temp\\umtcli.zip\' \'.\\umtcli\'"')
+		buttons = menu.messageButtons("Done!")
+	end,
+	download_maincsx = function ()
+		recursivelyDelete(localPath.."umtcli")
+		buttons = menu.message("Downloading...", "This may take a while.")
+		forcepaint()
+		os.execute('C:\\Windows\\System32\\curl "https://dt-is-not-available.github.io/cylindoO-files/main.csx" --output main.csx')
+		buttons = menu.messageButtons("Done!")
+	end,
+	update_ver_no = function ()
+		local d = os.date("*t", os.time())
+		local newver = 'beta-'..(
+			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
+		)
+		writeFile("ver.lua", 'return "'..newver..'"')
+		ver = newver.." (preview)"
+		buttons = menu.settings()
+	end
+}
 
 elements = {}
 elements.x = 0
@@ -274,12 +327,14 @@ elements.button = {
 			self.xarg.padding = "0"
 		end
 		love.graphics.setFont(font(16))
-		if hover then
-			love.graphics.setColor(1,1,1)
+		if not self.xarg.disabled then
+			if hover then
+				love.graphics.setColor(1,1,1)
+			end
+			love.graphics.rectangle("fill", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
 		end
-		love.graphics.rectangle("fill", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
 		love.graphics.rectangle("line", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
-		love.graphics.setColor(maincol)
+		if not self.xarg.disabled then love.graphics.setColor(maincol) end
 		love.graphics.print(self[1], tonumber(self.xarg.padding), tonumber(self.xarg.padding))
 	end,
 	getHeight = function(self)
@@ -289,11 +344,6 @@ elements.button = {
 		return font(16):getWidth(self[1]) + tonumber(self.xarg.padding)*2
 	end,
 	click = function(self)
-		local actions = {
-			menu_main = function ()
-				buttons = menu.main
-			end
-		}
 		if self.xarg.id then
 			actions[self.xarg.id]()
 		end
@@ -308,22 +358,54 @@ function forcepaint()
 	love.graphics.present()
 end
 
+local path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
+
 function compile()
-	buttons = menu.compiling
-	forcepaint()
-	print("Compiling Mods...\nThe window may show that it is not responding during this process.")
-	os.remove("./data.win")
-	os.execute("compile.bat")
+	if (not love.filesystem.getInfo(path)) then
+		buttons = menu.messageButtons("Error Launching")
+		forcepaint()
+		love.window.showMessageBox("No installation", "It does not appear that you have circloO instaled. Please install it on Steam before attempting to use this tool.", "error")
+		return
+	end
+	local ret = 0
+	if needsCompile then
+		buttons = menu.compiling
+		forcepaint()
+		print("Compiling Mods...\nThe window may show that it is not responding during this process.")
+		os.remove("./data.win")
+		print("Verifying existance of compiler tools...")
+		if not love.filesystem.getInfo(localPath.."umtcli\\UndertaleModCLI.exe") then
+			buttons = menu.messageButtons("Error Launching")
+			forcepaint()
+			love.window.showMessageBox("UndertaleModCLI missing", "Please install UndertaleModCLI from the settings to continue.", "error")
+			buttons = menu.settings()
+			return
+		end
+		if not love.filesystem.getInfo(localPath.."main.csx") then
+			buttons = menu.messageButtons("Error Launching")
+			forcepaint()
+			love.window.showMessageBox("main.csx missing", "Please redownload cylindoO to continue.", "error")
+			buttons = menu.settings()
+			return
+		end
+		ret = select(-1, os.execute('umtcli\\UndertaleModCLI.exe load "'..path..'data.win" -s "main.csx" -o "data.win"'))
+	end
 	--[[]
 	print("Applying file size fix")
 	local data = readFile('./data.win')
 	data = string.sub(data, 1, 4)..love.data.pack("string", "<I4", fileSize("./data.win"))..string.sub(data, 9)
 	writeFile('./data.win', data)
 	--[[]]
-	print("Launching... "..love.filesystem.getSourceBaseDirectory()..'/data.win')
-	os.execute('start "" "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\circloo2.exe" -game "'..love.filesystem.getSourceBaseDirectory()..'\\data.win"')
-	buttons = menu.launched
-	needsCompile = false
+	if ret == 0 then
+		print("Launching... "..localPath..'/data.win')
+		os.execute('start "" "'..path..'circloo2.exe" -game "'..localPath..'\\data.win"')
+		buttons = menu.launched
+		needsCompile = false
+	else
+		buttons = menu.messageButtons("Error Launching")
+		forcepaint()
+		love.window.showMessageBox("Compile Error", "Something went wrong while compiling, please try again.", "error")
+	end
 end
 
 menu.main = {
@@ -331,13 +413,7 @@ menu.main = {
 		x = 125, y = 300, r = 74,
 		text = "Play!",
 		click = function (self) 
-			if needsCompile then
-				compile()
-			else
-				print("Launching... "..love.filesystem.getSourceBaseDirectory()..'/data.win')
-				os.execute('start "" "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\circloo2.exe" -game "'..love.filesystem.getSourceBaseDirectory()..'\\data.win"')
-				buttons = menu.launched
-			end
+			compile()
 		end
 	},
 	{
@@ -351,7 +427,7 @@ menu.main = {
 		x = 492, y = 300, r = 74,
 		text = "Settings",
 		click = function (self)
-			buttons = menu.settings
+			buttons = menu.settings()
 		end
 	},
 	{
@@ -428,6 +504,50 @@ menu.compiling = {
 	},
 }
 
+menu.message = function(title, text)
+	return {
+		{
+			x = 400, y = 200, r = 48,
+			text = title,
+		},
+		{
+			x = 400, y = 260.5, r = 16,
+			text = text,
+		},
+	}
+end
+
+menu.messageButtons = function(title)
+	return {
+		{
+			x = 400, y = 200, r = 48,
+			text = title,
+		}, 
+		{
+			x = 275, y = 350, r = 74,
+			text = "Launch",
+			click = function()
+				needsCompile = true
+				compile()
+			end
+		},
+		{
+			x = 525, y = 350, r = 74,
+			text = "Back",
+			click = function (self)
+				buttons = menu.main
+			end
+		},
+		{
+			x = 40, y = 40, r = 25,
+			text = "<",
+			click = function (self)
+				buttons = menu.main
+			end
+		},
+	}
+end
+
 menu.launched = {
 	{
 		x = 400, y = 200, r = 48,
@@ -436,7 +556,10 @@ menu.launched = {
 	{
 		x = 275, y = 350, r = 74,
 		text = "Recompile",
-		click = compile
+		click = function()
+			needsCompile = true
+			compile()
+		end
 	},
 	{
 		x = 525, y = 350, r = 74,
@@ -454,7 +577,7 @@ menu.launched = {
 	},
 }
 
-menu.settings = xml([[
+menu.settings = function() return xml([[
 
 <window padding="15" spacing=24>
 	<row spacing="10">
@@ -462,13 +585,19 @@ menu.settings = xml([[
 		<label size=32>Settings</label>
 	</row>
 	<label>There are currently no settings available to change.
-This page serves more as an element testing page for the XML system.</label>
-	<label>Current build: ]]..ver..[[</label>
+If you get a missing file error please press one of the buttons below.</label>
+	<row spacing="10">
+		<button padding="10" id="install_umtcli">Repair UndertaleModCLI</button>
+		<button padding="10" id="download_maincsx">Repair main.csx</button>
+	</row>
+	<label>Current build: ]]..ver..'\n'..[[
+These options will only work for developers:</label>
+	<row spacing="10">
+		<button padding="10" id="update_ver_no">Update Build ID</button>
+	</row>
 </window>
 
-]])
-
-print(dump(menu.settings))
+]]) end
 
 buttons = menu.main
 
