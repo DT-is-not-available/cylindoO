@@ -9,7 +9,7 @@ require("unzip")
 localPath = love.filesystem.getSourceBaseDirectory().."/"
 
 needsCompile = love.filesystem.getInfo(localPath.."data.win") == nil
-ver = "beta-230108.0445"
+ver = require("ver")
 
 function readFile(file)
     local f = assert(io.open(file, "rb"))
@@ -101,6 +101,15 @@ local actions = {
 		os.execute('C:\\Windows\\System32\\curl "https://dt-is-not-available.github.io/cylindoO-files/main.csx" --output main.csx')
 		buttons = menu.messageButtons("Done!")
 	end,
+	update_ver_no = function ()
+		local d = os.date("*t", os.time())
+		local newver = 'beta-'..(
+			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
+		)
+		writeFile("ver.lua", 'return "'..newver..'"')
+		ver = newver.." (preview)"
+		buttons = menu.settings()
+	end
 }
 
 elements = {}
@@ -353,7 +362,7 @@ local path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
 
 function compile()
 	if (not love.filesystem.getInfo(path)) then
-		buttons = menu.err
+		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
 		love.window.showMessageBox("No installation", "It does not appear that you have circloO instaled. Please install it on Steam before attempting to use this tool.", "error")
 		return
@@ -366,17 +375,17 @@ function compile()
 		os.remove("./data.win")
 		print("Verifying existance of compiler tools...")
 		if not love.filesystem.getInfo(localPath.."umtcli\\UndertaleModCLI.exe") then
-			buttons = menu.err
+			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("UndertaleModCLI missing", "Please install UndertaleModCLI from the settings to continue.", "error")
-			buttons = menu.settings
+			buttons = menu.settings()
 			return
 		end
 		if not love.filesystem.getInfo(localPath.."main.csx") then
-			buttons = menu.err
+			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("main.csx missing", "Please redownload cylindoO to continue.", "error")
-			buttons = menu.settings
+			buttons = menu.settings()
 			return
 		end
 		ret = select(-1, os.execute('umtcli\\UndertaleModCLI.exe load "'..path..'data.win" -s "main.csx" -o "data.win"'))
@@ -393,7 +402,7 @@ function compile()
 		buttons = menu.launched
 		needsCompile = false
 	else
-		buttons = menu.err
+		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
 		love.window.showMessageBox("Compile Error", "Something went wrong while compiling, please try again.", "error")
 	end
@@ -418,7 +427,7 @@ menu.main = {
 		x = 492, y = 300, r = 74,
 		text = "Settings",
 		click = function (self)
-			buttons = menu.settings
+			buttons = menu.settings()
 		end
 	},
 	{
@@ -568,36 +577,7 @@ menu.launched = {
 	},
 }
 
-menu.err = {
-	{
-		x = 400, y = 200, r = 48,
-		text = "Error Launching",
-	}, 
-	{
-		x = 275, y = 350, r = 74,
-		text = "Recompile",
-		click = function()
-			needsCompile = true
-			compile()
-		end
-	},
-	{
-		x = 525, y = 350, r = 74,
-		text = "Exit",
-		click = function (self)
-			love.event.quit()
-		end
-	},
-	{
-		x = 40, y = 40, r = 25,
-		text = "<",
-		click = function (self)
-			buttons = menu.main
-		end
-	},
-}
-
-menu.settings = xml([[
+menu.settings = function() return xml([[
 
 <window padding="15" spacing=24>
 	<row spacing="10">
@@ -610,10 +590,14 @@ If you get a missing file error please press one of the buttons below.</label>
 		<button padding="10" id="install_umtcli">Repair UndertaleModCLI</button>
 		<button padding="10" id="download_maincsx">Repair main.csx</button>
 	</row>
-	<label>Current build: ]]..ver..[[</label>
+	<label>Current build: ]]..ver..'\n'..[[
+These options will only work for developers:</label>
+	<row spacing="10">
+		<button padding="10" id="update_ver_no">Update Build ID</button>
+	</row>
 </window>
 
-]])
+]]) end
 
 buttons = menu.main
 
