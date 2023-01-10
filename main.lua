@@ -3,7 +3,8 @@ backcol = {0.9, 0.4, 0.4}
 
 local http = require "socket.http"
 
-require("xml")
+require "xml"
+local JSON = require "json"
 
 function exists(file)
 	local ok, err, code = os.rename(file, file)
@@ -94,10 +95,14 @@ local actions = {
 	menu_main = function ()
 		buttons = menu.main
 	end,
+	menu_mods = function ()
+		buttons = menu.mods
+	end,
 	install_umtcli = function ()
 		recursivelyDelete(localPath.."umtcli")
 		buttons = menu.message("Downloading...", "This may take a while.")
 		forcepaint()
+		-- custom hosting this because it doesnt like the official github release for some reason, will change once i figure out how
 		os.execute('C:\\Windows\\System32\\curl "https://dt-is-not-available.github.io/cylindoO-files/umtcli.zip" --output temp\\umtcli.zip')
 		buttons = menu.message("Extracting...", "This may take a while. Please wait, even if the window shows \"Not Responding.\"")
 		forcepaint()
@@ -141,6 +146,11 @@ elements = {}
 elements.x = 0
 elements.y = 0
 elements.window = {
+	init = function(self)
+		for index, value in ipairs(self) do
+			if elements[value.label].init then elements[value.label].init(value) end
+		end
+	end,
 	draw = function(self)
 		if not self.xarg.spacing then
 			self.xarg.spacing = "0"
@@ -187,6 +197,21 @@ elements.window = {
 	end,
 }
 elements.panel = {
+	init = function(self)
+		self.height = 0
+		for index, value in ipairs(self) do
+			if elements[value.label].init then elements[value.label].init(value) end
+			self.height = self.height + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		if not self.xarg.spacing then
+			self.xarg.spacing = "0"
+		end
+		elements[self.label].getHeight(self)
+		if self.height < tonumber(self.xarg.height) then
+			self.scroll = 0
+		end
+		self.scroll = 0
+	end,
 	draw = function(self)
 		if not self.xarg.spacing then
 			self.xarg.spacing = "0"
@@ -200,15 +225,22 @@ elements.panel = {
 			elements.y = elements.y + tonumber(self.xarg.padding)
 			love.graphics.translate(tonumber(self.xarg.padding), tonumber(self.xarg.padding))
 		end
+		love.graphics.translate(0, -self.scroll)
 		for index, value in ipairs(self) do
+			love.graphics.setScissor(0, self.scroll, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
 			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
 			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
 			love.graphics.translate(0, elements[value.label].getHeight(value) + tonumber(self.xarg.spacing))
 			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
 		end
+		love.graphics.setScissor()
 		love.graphics.pop()
 		elements.x = x
 		elements.y = y
+		if self.xarg.outline then
+			love.graphics.setColor(backcol)
+			love.graphics.rectangle("line", 0, 0, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
+		end
 	end,
 	click = function(self)
 		local x = elements.x
@@ -230,13 +262,10 @@ elements.panel = {
 		elements.y = y
 	end,
 	getHeight = function(self)
-		if not self.height then
-			self.height = 0
-			for index, value in ipairs(self) do
-				self.height = self.height + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
-			end
+		if self.xarg.height then
+			return tonumber(self.xarg.height)+tonumber(self.xarg.padding or 0)*4
 		end
-		return self.height
+		return self.height+tonumber(self.xarg.padding or 0)*4
 	end,
 	getWidth = function(self)
 		if not self.width then
@@ -248,10 +277,15 @@ elements.panel = {
 				end
 			end
 		end
-		return self.width
+		return self.width+tonumber(self.xarg.padding or 0)*4
 	end,
 }
 elements.row = {
+	init = function(self)
+		for index, value in ipairs(self) do
+			if elements[value.label].init then elements[value.label].init(value) end
+		end
+	end,
 	draw = function(self)
 		if not self.xarg.spacing then
 			self.xarg.spacing = "0"
@@ -330,6 +364,14 @@ elements.title = {
 	end,
 }
 elements.label = {
+	init = function(self)
+		if not self.xarg.size then
+			self.xarg.size = "16"
+		end
+		if self.xarg.wrap then
+			self[1] = table.concat(select(2, font(tonumber(self.xarg.size)):getWrap(self[1], tonumber(self.xarg.wrap))),"\n")
+		end
+	end,
 	draw = function(self)
 		love.graphics.setColor(backcol)
 		love.graphics.setFont(font(tonumber(self.xarg.size)))
@@ -339,8 +381,8 @@ elements.label = {
 		return font(tonumber(self.xarg.size)):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1)
 	end,
 	getWidth = function(self)
-		if not self.xarg.size then
-			self.xarg.size = "16"
+		if self.xarg.wrap then
+			return tonumber(self.xarg.wrap)
 		end
 		return font(tonumber(self.xarg.size)):getWidth(self[1])
 	end,
@@ -490,7 +532,26 @@ menu.mods = {
 		text = "Manage",
 		disabled = true,
 		click = function (self)
-			
+			buttons = menu.modlist {
+				{
+					name = "Mod Name",
+					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					id = "modid",
+					type = 1,
+				},
+				{
+					name = "Mod Name",
+					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					id = "modid",
+					type = 2,
+				},
+				{
+					name = "Mod Name",
+					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					id = "modid",
+					type = 3,
+				},
+			}
 		end
 	},
 	{
@@ -626,6 +687,45 @@ These options will only work for developers:</label>
 
 ]]) end
 
+menu.modlist = function(list) 
+	local ret = [[
+<window padding="15" spacing=24>
+	<row spacing="10">
+		<button padding="10" id="menu_mods">Back</button>
+		<label size=32>Mods</label>
+	</row>
+]]
+	for index, value in ipairs(list) do
+		ret = ret..[[
+			<panel outline=1 padding=5>
+				<label size=24>]]..value.name..[[</label>
+				<label wrap=750>]]..value.description..[[</label>
+				]]..({
+					[[
+						<row spacing="10" padding=5>
+							<button padding="10" id="mod_uninstall" modid="]]..value.id..[[">Uninstall</button>
+							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						</row>
+					]],
+					[[
+						<row spacing="10" padding=5>
+							<button padding="10" id="mod_install" modid="]]..value.id..[[">Install</button>
+							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						</row>
+					]],
+					[[
+						<row spacing="10" padding=5>
+							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						</row>
+					]],
+				})[value.type]..[[
+			</panel>
+		]]
+	end
+	ret = ret.."</window>"
+	return xml(ret)
+end
+
 buttons = menu.main
 
 fonts = {}
@@ -641,6 +741,12 @@ function love.draw()
 	love.graphics.setBackgroundColor(maincol)
 	love.graphics.setLineWidth(2)
 	if buttons.xml_top then
+		if not buttons.xml_init then
+			for index, value in ipairs(buttons) do
+				if elements[value.label].init then elements[value.label].init(value) end
+			end
+			buttons.xml_init = true
+		end
 		for index, value in ipairs(buttons) do
 			love.graphics.setColor(backcol)
 			elements[value.label].draw(value)
