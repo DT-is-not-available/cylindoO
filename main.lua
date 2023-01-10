@@ -6,7 +6,8 @@ local http = require "socket.http"
 require "xml"
 local JSON = require "json"
 
-function exists(file)
+function exists(filepa)
+	local file = table.concat(filepa:split("/"), "\\")
 	local ok, err, code = os.rename(file, file)
 	if not ok then
 	if code == 13 then
@@ -17,7 +18,12 @@ function exists(file)
 	return ok, err
 end
 
-localPath = love.filesystem.getSourceBaseDirectory().."/"
+function string:split(sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
 
 needsCompile = exists(".\\data.win") == nil
 ver = require("ver")
@@ -77,19 +83,6 @@ os.execute("mkdir umtcli")
 os.execute("mkdir mods")
 os.execute("mkdir patches")
 os.execute("mkdir temp")
-love.filesystem.createDirectory("temp")
-
-function recursivelyDelete( item )
-	if exists( item , "directory" ) then
-		for _, child in ipairs( love.filesystem.getDirectoryItems( item )) do
-			recursivelyDelete( item .. '/' .. child )
-			love.filesystem.remove( item .. '/' .. child )
-		end
-	elseif exists( item ) then
-		love.filesystem.remove( item )
-	end
-	love.filesystem.remove( item )
-end
 
 local actions = {
 	menu_main = function ()
@@ -99,7 +92,6 @@ local actions = {
 		buttons = menu.mods
 	end,
 	install_umtcli = function ()
-		recursivelyDelete(localPath.."umtcli")
 		buttons = menu.message("Downloading...", "This may take a while.")
 		forcepaint()
 		-- custom hosting this because it doesnt like the official github release for some reason, will change once i figure out how
@@ -113,7 +105,6 @@ local actions = {
 		buttons = menu.messageButtons("Done!")
 	end,
 	download_maincsx = function ()
-		recursivelyDelete(localPath.."umtcli")
 		buttons = menu.message("Downloading...", "This may take a while.")
 		forcepaint()
 		os.execute('C:\\Windows\\System32\\curl "https://dt-is-not-available.github.io/cylindoO-files/main.csx" --output main.csx')
@@ -140,6 +131,11 @@ local actions = {
 	restart = function ()
 		love.event.quit( "restart" )
 	end,
+	debug_path = function ()
+		path = "./debug/"
+		print (path)
+		buttons = menu.main
+	end
 }
 
 elements = {}
@@ -425,7 +421,7 @@ function forcepaint()
 	love.graphics.present()
 end
 
-local path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
+path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
 
 function compile()
 	if (not exists(path)) then
@@ -464,11 +460,11 @@ function compile()
 	writeFile('./data.win', data)
 	--[[]]
 	if ret == 0 then
-		print("Launching... "..localPath..'/data.win')
+		print("Launching... ./data.win")
 		love.window.close()
 		buttons = menu.launched
 		needsCompile = false
-		local r = os.execute('start "" "'..path..'circloo2.exe" -game "data.win" -wait')
+		local r = os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
 		if r ~= 0 then
 			buttons = menu.messageButtons("Game crashed")
 		end
@@ -687,6 +683,7 @@ These options will only work for developers:</label>
 		<button padding="10" id="update_ver_no">Build ID</button>
 		<button padding="10" id="update_beta_no">Unstable ID</button>
 		<button padding="10" id="restart">Restart</button>
+		<button padding="10" id="debug_path">Debug Game Path</button>
 	</row>
 </window>
 
