@@ -465,9 +465,14 @@ function compile()
 	--[[]]
 	if ret == 0 then
 		print("Launching... "..localPath..'/data.win')
-		os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
+		love.window.close()
 		buttons = menu.launched
 		needsCompile = false
+		local r = os.execute('start -wait "" "'..path..'circloo2.exe" -game "data.win"')
+		if r ~= 0 then
+			buttons = menu.messageButtons("Game crashed")
+		end
+		love.window.setMode(800, 480)
 	else
 		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
