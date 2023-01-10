@@ -135,6 +135,10 @@ local actions = {
 		path = "./debug/"
 		print (path)
 		buttons = menu.main
+	end,
+	del_data_win = function ()
+		os.execute 'erase data.win'
+		buttons = menu.main
 	end
 }
 
@@ -195,15 +199,15 @@ elements.window = {
 elements.panel = {
 	init = function(self)
 		self.height = 0
+		if not self.xarg.spacing then
+			self.xarg.spacing = "0"
+		end
 		for index, value in ipairs(self) do
 			if elements[value.label].init then elements[value.label].init(value) end
 			self.height = self.height + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
 		end
-		if not self.xarg.spacing then
-			self.xarg.spacing = "0"
-		end
 		elements[self.label].getHeight(self)
-		if self.height < tonumber(self.xarg.height) then
+		if self.xarg.height and self.height < tonumber(self.xarg.height) then
 			self.scroll = 0
 		end
 		self.scroll = 0
@@ -223,7 +227,9 @@ elements.panel = {
 		end
 		love.graphics.translate(0, -self.scroll)
 		for index, value in ipairs(self) do
-			love.graphics.setScissor(0, self.scroll, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
+			if self.xarg.height then
+				love.graphics.setScissor(0, self.scroll, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
+			end
 			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
 			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
 			love.graphics.translate(0, elements[value.label].getHeight(value) + tonumber(self.xarg.spacing))
@@ -461,14 +467,10 @@ function compile()
 	--[[]]
 	if ret == 0 then
 		print("Launching... ./data.win")
-		love.window.close()
+		-- love.window.close()
 		buttons = menu.launched
 		needsCompile = false
-		local r = os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
-		if r ~= 0 then
-			buttons = menu.messageButtons("Game crashed")
-		end
-		love.window.setMode(800, 480)
+		os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
 	else
 		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
@@ -671,19 +673,22 @@ menu.settings = function() return xml([[
 		<button padding="10" id="menu_main">Back</button>
 		<label size=32>Settings</label>
 	</row>
-	<label>There are currently no settings available to change.
-If you get a missing file error please press one of the buttons below.</label>
+	<label>There are currently no settings available to change.</label>
+	<label size=24>Repair Options</label>
+	<label>If you get a missing file error please press one of the buttons below.</label>
 	<row spacing="10">
 		<button padding="10" id="install_umtcli">Repair UndertaleModCLI</button>
 		<button padding="10" id="download_maincsx">Repair main.csx</button>
 	</row>
+	<label size=24>Development/Experimental Options</label>
 	<label>Current build: ]]..ver..'\n'..[[
-These options will only work for developers:</label>
+These options are used in development, or are extremely experimental:</label>
 	<row spacing="10">
 		<button padding="10" id="update_ver_no">Build ID</button>
 		<button padding="10" id="update_beta_no">Unstable ID</button>
 		<button padding="10" id="restart">Restart</button>
 		<button padding="10" id="debug_path">Debug Game Path</button>
+		<button padding="10" id="del_data_win">Delete compiled data.win</button>
 	</row>
 </window>
 
