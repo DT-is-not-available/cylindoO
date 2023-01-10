@@ -468,7 +468,7 @@ function compile()
 		love.window.close()
 		buttons = menu.launched
 		needsCompile = false
-		local r = os.execute('start -wait "" "'..path..'circloo2.exe" -game "data.win"')
+		local r = os.execute('start "" "'..path..'circloo2.exe" -game "data.win" -wait')
 		if r ~= 0 then
 			buttons = menu.messageButtons("Game crashed")
 		end
