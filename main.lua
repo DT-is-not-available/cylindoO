@@ -92,6 +92,9 @@ local actions = {
 		buttons = menu.message("Extracting...", "This may take a while. Please wait, even if the window shows \"Not Responding.\"")
 		forcepaint()
 		os.execute('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell -command "Expand-Archive -Force \'.\\temp\\umtcli.zip\' \'.\\umtcli\'"')
+		buttons = menu.message("Cleaning up...", "almost done i promise")
+		forcepaint()
+		os.execute 'erase temp\\umtcli.zip'
 		buttons = menu.messageButtons("Done!")
 	end,
 	download_maincsx = function ()
