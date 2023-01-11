@@ -137,6 +137,7 @@ local actions = {
 		buttons = menu.main
 	end,
 	del_data_win = function ()
+		needsCompile = true
 		os.execute 'erase data.win'
 		buttons = menu.main
 	end
@@ -228,14 +229,13 @@ elements.panel = {
 		love.graphics.translate(0, -self.scroll)
 		for index, value in ipairs(self) do
 			if self.xarg.height then
-				love.graphics.setScissor(0, self.scroll, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
+				love.graphics.setScissor(0, self.scroll, 800, elements[self.label].getHeight(self))
 			end
 			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
 			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
 			love.graphics.translate(0, elements[value.label].getHeight(value) + tonumber(self.xarg.spacing))
 			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
 		end
-		love.graphics.setScissor()
 		love.graphics.pop()
 		elements.x = x
 		elements.y = y
@@ -243,6 +243,7 @@ elements.panel = {
 			love.graphics.setColor(backcol)
 			love.graphics.rectangle("line", 0, 0, elements[self.label].getWidth(self), elements[self.label].getHeight(self))
 		end
+		love.graphics.setScissor()
 	end,
 	click = function(self)
 		local x = elements.x
@@ -263,11 +264,50 @@ elements.panel = {
 		elements.x = x
 		elements.y = y
 	end,
+	scrolldown = function(self)
+		local x = elements.x
+		local y = elements.y
+		self.scroll = self.scroll - 1
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].scrolldown and
+			love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)
+			then 
+				elements[value.label].scrolldown(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
+	scrollup = function(self)
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].scrollup and
+			love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
+			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)
+			then 
+				elements[value.label].scrollup(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
 	getHeight = function(self)
 		if self.xarg.height then
-			return tonumber(self.xarg.height)+tonumber(self.xarg.padding or 0)*4
+			return tonumber(self.xarg.height)+tonumber(self.xarg.padding or 0)*2
 		end
-		return self.height+tonumber(self.xarg.padding or 0)*4
+		return self.height+tonumber(self.xarg.padding or 0)*2
 	end,
 	getWidth = function(self)
 		if not self.width then
@@ -279,7 +319,7 @@ elements.panel = {
 				end
 			end
 		end
-		return self.width+tonumber(self.xarg.padding or 0)*4
+		return self.width+tonumber(self.xarg.padding or 0)*2
 	end,
 }
 elements.row = {
@@ -340,13 +380,13 @@ elements.row = {
 				end
 			end
 		end
-		return self.height
+		return self.height + tonumber(self.xarg.padding or 0)*2
 	end,
 	getWidth = function(self)
 		if not self.width then
 			self.width = 0
 			for index, value in ipairs(self) do
-				self.width = self.width + elements[value.label].getWidth(value) + tonumber(self.xarg.spacing)
+				self.width = self.width + elements[value.label].getWidth(value) + tonumber(self.xarg.spacing or 0) + tonumber(self.xarg.padding or 0)*2
 			end
 		end
 		return self.width
@@ -404,13 +444,13 @@ elements.button = {
 		end
 		love.graphics.rectangle("line", 0, 0, elements.button.getWidth(self), elements.button.getHeight(self), 10, 10)
 		if not self.xarg.disabled then love.graphics.setColor(maincol) end
-		love.graphics.print(self[1], tonumber(self.xarg.padding), tonumber(self.xarg.padding))
+		love.graphics.print(self[1], tonumber(self.xarg.padding)+5, tonumber(self.xarg.padding))
 	end,
 	getHeight = function(self)
 		return font(16):getHeight()*(select(2, string.gsub(self[1], "\n", "string"))+1) + tonumber(self.xarg.padding)*2
 	end,
 	getWidth = function(self)
-		return font(16):getWidth(self[1]) + tonumber(self.xarg.padding)*2
+		return font(16):getWidth(self[1]) + tonumber(self.xarg.padding)*2+10
 	end,
 	click = function(self)
 		if self.xarg.id then
@@ -537,20 +577,20 @@ menu.mods = {
 		click = function (self)
 			buttons = menu.modlist {
 				{
-					name = "Mod Name",
-					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					name = "Installed Mod Name",
+					description = "This is the description of a mod that has been installed. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
 					id = "modid",
 					type = 1,
 				},
 				{
-					name = "Mod Name",
-					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					name = "Online Mod Name",
+					description = "This mod has not been installed yet.",
 					id = "modid",
 					type = 2,
 				},
 				{
-					name = "Mod Name",
-					description = "This is the description of a mod that exists. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
+					name = "Built-in Mod",
+					description = "This mod cannot be removed because its built-in to the mod loader, either as a required dependancy, or as the mod api itself.",
 					id = "modid",
 					type = 3,
 				},
@@ -701,35 +741,36 @@ menu.modlist = function(list)
 		<button padding="10" id="menu_mods">Back</button>
 		<label size=32>Mods</label>
 	</row>
+	<panel spacing=24 height=450>
 ]]
 	for index, value in ipairs(list) do
 		ret = ret..[[
-			<panel outline=1 padding=5>
+			<panel outline=1 padding=10 spacing=5>
 				<label size=24>]]..value.name..[[</label>
 				<label wrap=750>]]..value.description..[[</label>
 				]]..({
 					[[
-						<row spacing="10" padding=5>
-							<button padding="10" id="mod_uninstall" modid="]]..value.id..[[">Uninstall</button>
-							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						<row spacing="20">
+							<button padding="2" id="mod_uninstall" modid="]]..value.id..[[">Uninstall</button>
+							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 					[[
-						<row spacing="10" padding=5>
-							<button padding="10" id="mod_install" modid="]]..value.id..[[">Install</button>
-							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						<row spacing="20">
+							<button padding="2" id="mod_install" modid="]]..value.id..[[">Install</button>
+							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 					[[
-						<row spacing="10" padding=5>
-							<button padding="10" id="mod_info" modid="]]..value.id..[[">More Info</button>
+						<row spacing="20">
+							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 				})[value.type]..[[
 			</panel>
 		]]
 	end
-	ret = ret.."</window>"
+	ret = ret.."</panel></window>"
 	return xml(ret)
 end
 
@@ -812,6 +853,15 @@ function love.mousepressed()
 			if distanceFrom(love.mouse.getX(), love.mouse.getY(), value.x, value.y) < value.r then
 				value:click()
 			end
+		end
+	end
+end
+
+function love.wheelmoved(x, y)
+	if buttons.xml_top then
+		for index, value in ipairs(buttons) do
+			if elements[value.label].scrolldown and y < 0 then elements[value.label].scrolldown(value) end
+			if elements[value.label].scrollup and y > 0 then elements[value.label].scrollup(value) end
 		end
 	end
 end
