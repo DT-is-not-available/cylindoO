@@ -17,6 +17,7 @@ Like circloO Complete, this tool will only be available for Windows.
 - [ ] mod dependancies
 
 ## TO-DO
+Items on the TO-DO list will be checked off as completed and removed once confirmed.
 - [ ] implement proper settings
 - [ ] implement mod detection in mods folder
 - [ ] refactor main.lua into multiple files
