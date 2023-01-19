@@ -15,3 +15,11 @@ Like circloO Complete, this tool will only be available for Windows.
 - [ ] online mod browser
 - [ ] configurable mod sets
 - [ ] mod dependancies
+
+## TO-DO
+- [ ] implement proper settings
+- [ ] implement mod detection in mods folder
+- [ ] refactor main.lua into multiple files
+- [ ] remove any dependancy on love.filesystem
+- [ ] remove any dependancy on batch files
+- [ ] working mod list
