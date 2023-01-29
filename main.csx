@@ -390,6 +390,18 @@ class ModConfig {
 
 EnsureDataLoaded();
 
+UndertaleFunction DefineFunc(string name)
+{
+    var str = Data.Strings.MakeString(name);
+    var func = new UndertaleFunction()
+    {
+        Name = str,
+        NameStringID = Data.Strings.IndexOf(str)
+    };
+    Data.Functions.Add(func);
+    return func;
+}
+
 Data.GeneralInfo.DisplayName.Content += " (running cylindoO)";
 
 Directory.CreateDirectory("./patches");
@@ -417,5 +429,48 @@ foreach (string dir in Directory.GetDirectories(".\\mods")) {
 	foreach(KeyValuePair<string, string[]> entry in config.Events)
 	{
 		ScriptMessage(entry.Key + ": ["+string.Join(", ", entry.Value)+"]");
+		string[] parts = entry.Key.Split(".");
+		string evID;
+		string obj;
+		if (parts.Length == 1) {
+			obj = "obj_renderer";
+			evID = parts[0];
+		} else {
+			evID = parts[1];
+			obj = parts[0];
+		}
+		var game_obj = Data.GameObjects.ByName(obj);
+		foreach(string filepath in entry.Value) {
+			string scriptfile = File.ReadAllText(dir+"/"+filepath);
+			switch (evID) {
+				case "Step":
+					game_obj.EventHandlerFor(EventType.Step, EventSubtypeStep.Step, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "StepBegin":
+					game_obj.EventHandlerFor(EventType.Step, EventSubtypeStep.BeginStep, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "StepEnd":
+					game_obj.EventHandlerFor(EventType.Step, EventSubtypeStep.EndStep, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "Draw":
+					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.Draw, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "DrawBegin":
+					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.DrawBegin, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "DrawEnd":
+					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.DrawEnd, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "DrawGUIBegin":
+					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.DrawGUIBegin, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "DrawGUIEnd":
+					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.DrawGUIEnd, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				default:
+					ScriptMessage("Unknown event '"+evID+"'");
+				break;
+			}
+		}
 	}
 }
