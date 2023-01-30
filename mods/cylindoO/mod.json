@@ -1,0 +1,8 @@
+{
+	"Name": "cylindoO API",
+	"Description": "The built-in cylindoO mod API.",
+	"Events": {
+		"gml_Object_obj_renderer_Draw_75.Append": ["draw_gui.gml"]
+	},
+	"internal@builtin": true
+}

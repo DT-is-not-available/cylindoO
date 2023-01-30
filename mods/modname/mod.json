@@ -1,0 +1,9 @@
+{
+	"Name": "The best mod",
+	"Description": "yes",
+	"Events": {
+		"DrawGUIEnd": ["filename.gml"],
+		"obj_collectcircle.Step": ["example.gml"],
+		"gml_GlobalScript_legui_create_settings_windows.Replace": ["20_max_circles.txt@, 3, 3, 7)"]
+	}
+}
