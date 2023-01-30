@@ -409,6 +409,7 @@ Directory.CreateDirectory("./mods");
 
 ThreadLocal<GlobalDecompileContext> DECOMPILE_CONTEXT = new ThreadLocal<GlobalDecompileContext>(() => new GlobalDecompileContext(Data, false));
 
+/*
 ScriptMessage("Patching game...");
 for (int i = 0; i < Data.Code.Count; i++) {
 	UndertaleCode code = Data.Code[i];
@@ -421,6 +422,17 @@ for (int i = 0; i < Data.Code.Count; i++) {
 }
 // ScriptMessage(Data.Code[0].Name.Content+":\n\n"+Decompiler.Decompile(Data.Code[0], DECOMPILE_CONTEXT.Value));
 ScriptMessage("Scripts patched:"+list);
+*/
+
+public string ReplaceFirst(string text, string search, string replace)
+{
+	int pos = text.IndexOf(search);
+	if (pos < 0)
+	{
+		return text;
+	}
+	return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
+}
 
 ScriptMessage("Compiling...");
 foreach (string dir in Directory.GetDirectories(".\\mods")) {
@@ -441,7 +453,8 @@ foreach (string dir in Directory.GetDirectories(".\\mods")) {
 		}
 		var game_obj = Data.GameObjects.ByName(obj);
 		foreach(string filepath in entry.Value) {
-			string scriptfile = File.ReadAllText(dir+"/"+filepath);
+			string[] args = filepath.Split("@");
+			string scriptfile = File.ReadAllText(dir+"/"+args[0]);
 			switch (evID) {
 				case "Step":
 					game_obj.EventHandlerFor(EventType.Step, EventSubtypeStep.Step, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
@@ -466,6 +479,16 @@ foreach (string dir in Directory.GetDirectories(".\\mods")) {
 				break;
 				case "DrawGUIEnd":
 					game_obj.EventHandlerFor(EventType.Draw, EventSubtypeDraw.DrawGUIEnd, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
+				case "Append":
+					// AppendGML wont work for some reason
+					Data.Code.ByName(obj).ReplaceGML(Decompiler.Decompile(Data.Code.ByName(obj), DECOMPILE_CONTEXT.Value)+"\n"+scriptfile, Data);
+				break;
+				case "Replace":
+					Data.Code.ByName(obj).ReplaceGML(ReplaceFirst(Decompiler.Decompile(Data.Code.ByName(obj), DECOMPILE_CONTEXT.Value), args[1], scriptfile), Data);
+				break;
+				case "Overwrite":
+					Data.Code.ByName(obj).ReplaceGML(scriptfile, Data);
 				break;
 				default:
 					ScriptMessage("Unknown event '"+evID+"'");

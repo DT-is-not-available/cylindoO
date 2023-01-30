@@ -3,20 +3,9 @@ backcol = {0.9, 0.4, 0.4}
 
 local http = require "socket.http"
 
-require "xml"
-local JSON = require "json"
-
-function exists(filepa)
-	local file = table.concat(filepa:split("/"), "\\")
-	local ok, err, code = os.rename(file, file)
-	if not ok then
-	if code == 13 then
-		-- Permission denied, but it exists
-		return true
-	end
-	end
-	return ok, err
-end
+require "lib.xml"
+local JSON = require "lib.json"
+local fs = require "lib.fs"
 
 function string:split(sep)
 	local sep, fields = sep or ":", {}
@@ -25,28 +14,8 @@ function string:split(sep)
 	return fields
 end
 
-needsCompile = exists(".\\data.win") == nil
+needsCompile = fs.exists(".\\data.win") == nil
 ver = require("ver")
-
-function readFile(file)
-    local f = assert(io.open(file, "rb"))
-    local content = f:read("*all")
-    f:close()
-    return content
-end
-
-function writeFile(file, data)
-    local f = assert(io.open(file, "w"))
-	f:write(data)
-    f:close()
-end
-
-function fileSize(file)
-	local f = assert(io.open(file, "r"))
-	local size = f:seek("end")
-	f:close()
-	return size
-end
 
 function HSV(h, s, v)
     if s <= 0 then return v,v,v end
@@ -115,7 +84,7 @@ local actions = {
 		local newver = "1.0."..(
 			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
 		)
-		writeFile("ver.lua", 'return "'..newver..'"')
+		fs.write("ver.lua", 'return "'..newver..'"')
 		ver = newver.." (preview)"
 		buttons = menu.settings()
 	end,
@@ -124,7 +93,7 @@ local actions = {
 		local newver = 'unstable-'..(
 			(d.year - 2000)*10000 + d.month*100 + d.day + d.hour/100 + d.min/10000 + d.sec/1000000
 		)
-		writeFile("ver.lua", 'return "'..newver..'"')
+		fs.write("ver.lua", 'return "'..newver..'"')
 		ver = newver.." (preview)"
 		buttons = menu.settings()
 	end,
@@ -470,7 +439,7 @@ end
 path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
 
 function compile()
-	if (not exists(path)) then
+	if (not fs.exists(path)) then
 		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
 		love.window.showMessageBox("No installation", "It does not appear that you have circloO instaled. Please install it on Steam before attempting to use this tool.", "error")
@@ -483,14 +452,14 @@ function compile()
 		print("Compiling Mods...\nThe window may show that it is not responding during this process.")
 		os.remove("./data.win")
 		print("Verifying existance of compiler tools...")
-		if not exists(".\\umtcli\\UndertaleModCLI.exe") then
+		if not fs.exists(".\\umtcli\\UndertaleModCLI.exe") then
 			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("UndertaleModCLI missing", "Please install UndertaleModCLI from the settings to continue.", "error")
 			buttons = menu.settings()
 			return
 		end
-		if not exists(".\\main.csx") then
+		if not fs.exists(".\\main.csx") then
 			buttons = menu.messageButtons("Error Launching")
 			forcepaint()
 			love.window.showMessageBox("main.csx missing", "Please redownload cylindoO to continue.", "error")
@@ -575,7 +544,7 @@ menu.mods = {
 		text = "Manage",
 		disabled = true,
 		click = function (self)
-			buttons = menu.modlist {
+			buttons = menu.modlist(getMods()) --[[ {
 				{
 					name = "Installed Mod Name",
 					description = "This is the description of a mod that has been installed. It is long enough to where it would have to wrap multiple lines if the time came, but that isn't implemented as of right now.",
@@ -594,7 +563,7 @@ menu.mods = {
 					id = "modid",
 					type = 3,
 				},
-			}
+			} ]] 
 		end
 	},
 	{
@@ -864,4 +833,21 @@ function love.wheelmoved(x, y)
 			if elements[value.label].scrollup and y > 0 then elements[value.label].scrollup(value) end
 		end
 	end
+end
+
+function getMods()
+	local arr = fs.getdir("mods")
+	local modlist = {}
+	for index, value in ipairs(arr) do
+		if fs.exists("mods/"..value.."/mod.json") then
+			local conf = JSON.parse(fs.read("mods/"..value.."/mod.json"))
+			modlist[#modlist+1] = {
+				type = (not conf["internal@builtin"]) and 1 or 3,
+				id = value,
+				name = conf.Name,
+				description = conf.Description
+			}
+		end
+	end
+	return modlist
 end

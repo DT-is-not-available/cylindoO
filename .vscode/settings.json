@@ -3,7 +3,10 @@
 		"love"
 	],
 	"Lua.diagnostics.disable": [
-		"lowercase-global"
+		"lowercase-global",
+		"param-type-mismatch",
+		"need-check-nil",
+		"discard-returns"
 	],
 	"Lua.workspace.library": [
 		"${3rd}/love2d/library"
