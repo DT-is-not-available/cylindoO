@@ -490,6 +490,9 @@ foreach (string dir in Directory.GetDirectories(".\\mods")) {
 				case "Overwrite":
 					Data.Code.ByName(obj).ReplaceGML(scriptfile, Data);
 				break;
+				case "OverwriteASM":
+                	Data.Code.ByName(obj).Replace(Assembler.Assemble(scriptfile, Data.Functions, Data.Variables, Data.Strings, Data));
+				break;
 				default:
 					ScriptMessage("Unknown event '"+evID+"'");
 				break;

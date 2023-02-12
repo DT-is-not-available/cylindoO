@@ -60,6 +60,9 @@ local actions = {
 	menu_mods = function ()
 		buttons = menu.mods
 	end,
+	manage_mods = function ()
+		buttons = menu.modlist(getMods())
+	end,
 	install_umtcli = function ()
 		buttons = menu.message("Downloading...", "This may take a while.")
 		forcepaint()
@@ -109,6 +112,13 @@ local actions = {
 		needsCompile = true
 		os.execute 'erase data.win'
 		buttons = menu.main
+	end,
+	mod_info = function(elem)
+		local modid = elem.xarg.modid
+		buttons = menu.modinfo(
+			elem.xarg.modname,
+			"No additional info yet"
+		)
 	end
 }
 
@@ -165,6 +175,38 @@ elements.window = {
 	getWidth = function(self)
 		return love.graphics:getWidth()
 	end,
+	scrolldown = function(self)
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].scrolldown then 
+				elements[value.label].scrolldown(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
+	scrollup = function(self)
+		local x = elements.x
+		local y = elements.y
+		if self.xarg.padding then
+			elements.x = elements.x + tonumber(self.xarg.padding)
+			elements.y = elements.y + tonumber(self.xarg.padding)
+		end
+		for index, value in ipairs(self) do
+			if elements[value.label].scrollup then 
+				elements[value.label].scrollup(value)
+			end
+			elements.y = elements.y + elements[value.label].getHeight(value) + tonumber(self.xarg.spacing)
+		end
+		elements.x = x
+		elements.y = y
+	end,
 }
 elements.panel = {
 	init = function(self)
@@ -178,7 +220,7 @@ elements.panel = {
 		end
 		elements[self.label].getHeight(self)
 		if self.xarg.height and self.height < tonumber(self.xarg.height) then
-			self.scroll = 0
+			
 		end
 		self.scroll = 0
 	end,
@@ -190,6 +232,7 @@ elements.panel = {
 		love.graphics.push()
 		local x = elements.x
 		local y = elements.y
+		elements.y = elements.y - self.scroll
 		if self.xarg.padding then
 			elements.x = elements.x + tonumber(self.xarg.padding)
 			elements.y = elements.y + tonumber(self.xarg.padding)
@@ -198,7 +241,7 @@ elements.panel = {
 		love.graphics.translate(0, -self.scroll)
 		for index, value in ipairs(self) do
 			if self.xarg.height then
-				love.graphics.setScissor(0, self.scroll, 800, elements[self.label].getHeight(self))
+				love.graphics.setScissor(0, y, 800, elements[self.label].getHeight(self)-y)
 			end
 			elements[value.label].draw(value, (love.mouse.getX() > elements.x and love.mouse.getX() < elements.x + elements[value.label].getWidth(value) and
 			love.mouse.getY() > elements.y and love.mouse.getY() < elements.y + elements[value.label].getHeight(value)))
@@ -217,6 +260,7 @@ elements.panel = {
 	click = function(self)
 		local x = elements.x
 		local y = elements.y
+		elements.y = elements.y - self.scroll
 		if self.xarg.padding then
 			elements.x = elements.x + tonumber(self.xarg.padding)
 			elements.y = elements.y + tonumber(self.xarg.padding)
@@ -236,7 +280,7 @@ elements.panel = {
 	scrolldown = function(self)
 		local x = elements.x
 		local y = elements.y
-		self.scroll = self.scroll - 1
+		self.scroll = self.scroll + 25
 		if self.xarg.padding then
 			elements.x = elements.x + tonumber(self.xarg.padding)
 			elements.y = elements.y + tonumber(self.xarg.padding)
@@ -256,6 +300,7 @@ elements.panel = {
 	scrollup = function(self)
 		local x = elements.x
 		local y = elements.y
+		if self.scroll > 0 then self.scroll = self.scroll - 25 end
 		if self.xarg.padding then
 			elements.x = elements.x + tonumber(self.xarg.padding)
 			elements.y = elements.y + tonumber(self.xarg.padding)
@@ -423,7 +468,7 @@ elements.button = {
 	end,
 	click = function(self)
 		if self.xarg.id then
-			actions[self.xarg.id]()
+			actions[self.xarg.id](self)
 		end
 	end
 }
@@ -542,7 +587,7 @@ menu.mods = {
 	{
 		x = 400, y = 300, r = 100,
 		text = "Manage",
-		disabled = true,
+		disabled = false,
 		click = function (self)
 			buttons = menu.modlist(getMods()) --[[ {
 				{
@@ -563,7 +608,7 @@ menu.mods = {
 					id = "modid",
 					type = 3,
 				},
-			} ]] 
+			} --[[]] 
 		end
 	},
 	{
@@ -720,19 +765,19 @@ menu.modlist = function(list)
 				]]..({
 					[[
 						<row spacing="20">
-							<button padding="2" id="mod_uninstall" modid="]]..value.id..[[">Uninstall</button>
-							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
+							<button padding="2" modname="]]..value.name..[[" moddesc="]]..value.description..[[" id="mod_uninstall" modid="]]..value.id..[[">Uninstall</button>
+							<button padding="2" modname="]]..value.name..[[" moddesc="]]..value.description..[[" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 					[[
 						<row spacing="20">
-							<button padding="2" id="mod_install" modid="]]..value.id..[[">Install</button>
-							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
+							<button padding="2" modname="]]..value.name..[[" moddesc="]]..value.description..[[" id="mod_install" modid="]]..value.id..[[">Install</button>
+							<button padding="2" modname="]]..value.name..[[" moddesc="]]..value.description..[[" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 					[[
 						<row spacing="20">
-							<button padding="2" id="mod_info" modid="]]..value.id..[[">More Info</button>
+							<button padding="2" modname="]]..value.name..[[" moddesc="]]..value.description..[[" id="mod_info" modid="]]..value.id..[[">More Info</button>
 						</row>
 					]],
 				})[value.type]..[[
@@ -741,6 +786,20 @@ menu.modlist = function(list)
 	end
 	ret = ret.."</panel></window>"
 	return xml(ret)
+end
+
+menu.modinfo = function(title, info)
+	return xml ([[
+		<window padding="15" spacing=24>
+			<row spacing="10">
+				<button padding="10" id="manage_mods">Back</button>
+				<label size=32>]]..title..[[</label>
+			</row>
+			<panel spacing=24 height=450>
+				<label>]]..info..[[</label>
+			</panel>
+		</window>
+	]])
 end
 
 buttons = menu.main
@@ -826,7 +885,8 @@ function love.mousepressed()
 	end
 end
 
-function love.wheelmoved(x, y)
+function love.wheelmoved(xo, yo)
+	local y = yo
 	if buttons.xml_top then
 		for index, value in ipairs(buttons) do
 			if elements[value.label].scrolldown and y < 0 then elements[value.label].scrolldown(value) end

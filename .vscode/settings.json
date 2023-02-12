@@ -6,7 +6,8 @@
 		"lowercase-global",
 		"param-type-mismatch",
 		"need-check-nil",
-		"discard-returns"
+		"discard-returns",
+		"assign-type-mismatch"
 	],
 	"Lua.workspace.library": [
 		"${3rd}/love2d/library"

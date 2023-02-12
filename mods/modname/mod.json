@@ -1,9 +1,9 @@
 {
-	"Name": "The best mod",
-	"Description": "yes",
+	"Name": "Extended Editor",
+	"Description": "Extends or removes the limits on certain options in the level editor.",
 	"Events": {
-		"DrawGUIEnd": ["filename.gml"],
-		"obj_collectcircle.Step": ["example.gml"],
-		"gml_GlobalScript_legui_create_settings_windows.Replace": ["20_max_circles.txt@, 3, 3, 7)"]
+		"gml_GlobalScript_legui_create_settings_windows.OverwriteASM": ["editorEdits.asm"],
+		"gml_GlobalScript_le_view_clamp_x.Overwrite": ["le_view_clamp_x.gml"],
+		"gml_GlobalScript_le_view_clamp_y.Overwrite": ["le_view_clamp_y.gml"]
 	}
 }
