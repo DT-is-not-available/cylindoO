@@ -456,6 +456,9 @@ foreach (string dir in Directory.GetDirectories(".\\mods")) {
 			string[] args = filepath.Split("@");
 			string scriptfile = File.ReadAllText(dir+"/"+args[0]);
 			switch (evID) {
+				case "Create":
+					game_obj.EventHandlerFor(EventType.Create, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
+				break;
 				case "Step":
 					game_obj.EventHandlerFor(EventType.Step, EventSubtypeStep.Step, Data.Strings, Data.Code, Data.CodeLocals).AppendGML(scriptfile, Data);
 				break;

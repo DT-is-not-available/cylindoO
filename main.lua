@@ -54,6 +54,12 @@ os.execute("mkdir patches")
 os.execute("mkdir temp")
 
 local actions = {
+	get_device_id = function ()
+		launch_args("getid")
+	end,
+	test_level = function ()
+		launch_level(".\\levelpacks\\pain\\getting oOver it.sav")
+	end,
 	menu_main = function ()
 		buttons = menu.main
 	end,
@@ -483,6 +489,24 @@ end
 
 path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\circloO\\"
 
+function launch_level(filepath)
+	os.execute('copy "'..filepath..'" "'..os.getenv('localappdata').."\\circloO2\\temp.sav"..'"')
+	launch_args("openlevel")
+end
+
+function launch_args(args)
+	if (not fs.exists(path)) then
+		buttons = menu.messageButtons("Error Launching")
+		forcepaint()
+		love.window.showMessageBox("No installation", "It does not appear that you have circloO instaled. Please install it on Steam before attempting to use this tool.", "error")
+		return
+	end
+	print("Launching... ./data.win")
+	-- love.window.close()
+	needsCompile = false
+	os.execute('start "" "'..path..'circloo2.exe" '..args..' -game "data.win" ')
+end
+
 function compile()
 	if (not fs.exists(path)) then
 		buttons = menu.messageButtons("Error Launching")
@@ -524,7 +548,7 @@ function compile()
 		-- love.window.close()
 		buttons = menu.launched
 		needsCompile = false
-		os.execute('start "" "'..path..'circloo2.exe" -game "data.win"')
+		os.execute('start "" "'..path..'circloo2.exe" ignore -game "data.win"')
 	else
 		buttons = menu.messageButtons("Error Launching")
 		forcepaint()
@@ -735,14 +759,17 @@ menu.settings = function() return xml([[
 		<button padding="10" id="download_maincsx">Repair main.csx</button>
 	</row>
 	<label size=24>Development/Experimental Options</label>
-	<label>Current build: ]]..ver..'\n'..[[
-These options are used in development, or are extremely experimental:</label>
+	<label>Current build: ]]..ver..'\n'..[[</label>
 	<row spacing="10">
 		<button padding="10" id="update_ver_no">Build ID</button>
 		<button padding="10" id="update_beta_no">Unstable ID</button>
 		<button padding="10" id="restart">Restart</button>
 		<button padding="10" id="debug_path">Debug Game Path</button>
 		<button padding="10" id="del_data_win">Delete compiled data.win</button>
+	</row>
+	<row spacing="10">
+		<button padding="10" id="get_device_id">Get Device ID</button>
+		<button padding="10" id="test_level">Test Level Loading</button>
 	</row>
 </window>
 
