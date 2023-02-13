@@ -1,8 +1,8 @@
+global.quitOnExit = false
 if (parameter_count() > 0 && parameter_string(1) != "ignore") {
 	var param = parameter_string(1)
 	if (param == "getid") {
-		show_message("Your device ID is "+deviceID);
-		game_end()
+		deviceID = get_string("Your device ID:", deviceID)
 	} else if (param == "openlevel") {
 
 		var file = file_text_open_read("temp.sav");
@@ -15,6 +15,7 @@ if (parameter_count() > 0 && parameter_string(1) != "ignore") {
 		file_text_close(file);
 		
 		level_start_content(s, 0);
-		global.startedGameInitial = 1;
+		global.startedGameInitial = true;
+		global.quitOnExit = true;
 	}
 }

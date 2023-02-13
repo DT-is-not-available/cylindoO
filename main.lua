@@ -573,7 +573,7 @@ menu.main = {
 	},
 	{
 		x = 492, y = 300, r = 74,
-		text = "Settings",
+		text = "Options",
 		click = function (self)
 			buttons = menu.settings()
 		end
@@ -749,9 +749,8 @@ menu.settings = function() return xml([[
 <window padding="15" spacing=24>
 	<row spacing="10">
 		<button padding="10" id="menu_main">Back</button>
-		<label size=32>Settings</label>
+		<label size=32>Options</label>
 	</row>
-	<label>There are currently no settings available to change.</label>
 	<label size=24>Repair Options</label>
 	<label>If you get a missing file error please press one of the buttons below.</label>
 	<row spacing="10">
@@ -759,18 +758,20 @@ menu.settings = function() return xml([[
 		<button padding="10" id="download_maincsx">Repair main.csx</button>
 	</row>
 	<label size=24>Development/Experimental Options</label>
-	<label>Current build: ]]..ver..'\n'..[[</label>
-	<row spacing="10">
-		<button padding="10" id="update_ver_no">Build ID</button>
-		<button padding="10" id="update_beta_no">Unstable ID</button>
-		<button padding="10" id="restart">Restart</button>
-		<button padding="10" id="debug_path">Debug Game Path</button>
-		<button padding="10" id="del_data_win">Delete compiled data.win</button>
-	</row>
-	<row spacing="10">
-		<button padding="10" id="get_device_id">Get Device ID</button>
-		<button padding="10" id="test_level">Test Level Loading</button>
-	</row>
+	<label>Current build: ]]..ver..[[</label>
+	<panel spacing=5>
+		<row spacing=5>
+			<button padding="2" id="update_ver_no">Build ID</button>
+			<button padding="2" id="update_beta_no">Unstable ID</button>
+			<button padding="2" id="restart">Restart</button>
+			<button padding="2" id="debug_path">Debug Game Path</button>
+			<button padding="2" id="del_data_win">Delete compiled data.win</button>
+		</row>
+		<row spacing=5>
+			<button padding="2" id="get_device_id">Launch With Custom Device ID</button>
+			<button padding="2" id="test_level">Test Level Loading</button>
+		</row>
+	</panel>
 </window>
 
 ]]) end
